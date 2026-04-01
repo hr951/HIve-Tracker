@@ -12,9 +12,12 @@ module.exports = {
 
     async execute(interaction, client) {
         const name = interaction.options.getString('name');
-        if (client.watchedPlayers.includes(name)) return interaction.reply({ content: '既に追加されています', flags: [MessageFlags.Ephemeral] });
+        const guildId = interaction.guildId;
 
-        client.watchedPlayers.push(name);
+        if (!client.watchedPlayers[guildId]) client.watchedPlayers[guildId] = [];
+        if (client.watchedPlayers[guildId].includes(name)) return interaction.reply({ content: '既に追加されています', flags: [MessageFlags.Ephemeral] });
+
+        client.watchedPlayers[guildId].push(name);
         client.saveData(client.PLAYERS_FILE, client.watchedPlayers);
 
         const data = await client.fetchAllStats(name);
@@ -37,8 +40,8 @@ module.exports = {
             client.saveData(client.CACHE_FILE, client.statsCache);
             await interaction.reply({ content: `✅ **${name}** を追加しました`, flags: [MessageFlags.Ephemeral] });
         } else {
-            const index = client.watchedPlayers.indexOf(name);
-            client.watchedPlayers.splice(index, 1);
+            const index = client.watchedPlayers[guildId].indexOf(name);
+            client.watchedPlayers[guildId].splice(index, 1);
             delete client.statsCache[name];
 
             client.saveData(client.PLAYERS_FILE, client.watchedPlayers);

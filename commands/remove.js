@@ -11,16 +11,23 @@ module.exports = {
         ),
 
     async execute(interaction, client) {
+        const guildId = interaction.guildId;
         const name = interaction.options.getString('name');
-        const index = client.watchedPlayers.indexOf(name);
 
-        if (index === -1) return interaction.reply({ content: 'そのプレイヤーはリストにいません', flags: [MessageFlags.Ephemeral] });
+        const players = client.watchedPlayers[guildId];
+        if (!players || !players.includes(name)) {
+            return interaction.reply({ 
+                content: 'そのプレイヤーはリストにいません', 
+                flags: [MessageFlags.Ephemeral] 
+            });
+        }
 
-        client.watchedPlayers.splice(index, 1);
-        delete client.statsCache[name];
-
+        client.watchedPlayers[guildId] = players.filter(p => p !== name);
         client.saveData(client.PLAYERS_FILE, client.watchedPlayers);
-        client.saveData(client.CACHE_FILE, client.statsCache);
-        await interaction.reply({ content: `🗑️ **${name}** を削除しました`, flags: [MessageFlags.Ephemeral] });
+
+        await interaction.reply({ 
+            content: `🗑️ **${name}** を監視リストから削除しました`, 
+            flags: [MessageFlags.Ephemeral] 
+        });
     }
 };

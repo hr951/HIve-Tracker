@@ -5,6 +5,12 @@ module.exports = {
     name: 'interactionCreate',
     async execute(interaction, client) {
         if (interaction.isChatInputCommand()) {
+            if (!client.whiteList[interaction.guildId]) {
+                return interaction.reply({
+                    content: '❌ このサーバーではこのボットを利用する権限がありません',
+                    flags: [MessageFlags.Ephemeral]
+                });
+            }
             const command = interaction.client.commands.get(interaction.commandName);
             if (!command) {
                 console.error(`${interaction.commandName} が見つかりません。`);

@@ -5,7 +5,7 @@ module.exports = {
     name: 'clientReady',
     async execute(client) {
         setInterval(() => {
-            const trackingPlayers = client.watchedPlayers.length;
+            const trackingPlayers = Object.keys(client.statsCache).length;
             client.user.setPresence({
                 activities: [
                     {

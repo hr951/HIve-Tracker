@@ -6,6 +6,7 @@ const fs = require('fs');
 require("dotenv").config();
 
 const { fields_embed } = require("./utils/embeds.js");
+const { getGameName } = require("./utils/getGameName.js");
 
 const client = new Client({
     intents: [
@@ -17,14 +18,16 @@ const client = new Client({
 
 // 設定
 const token = process.env.DISCORD_BOT_TOKEN;
-const CHANNEL_ID = '1488577861412458567';
 
 const PLAYERS_FILE = path.join(__dirname, 'data', 'players.json');
 const CACHE_FILE = path.join(__dirname, 'data', 'cache.json');
+const GUILD_CONFIG_FILE = path.join(__dirname, 'data', 'guild_configs.json');
+const WHITELIST_FILE = path.join(__dirname, 'data', 'whiteList.json');
 
 // --- データ管理関数 ---
 function loadData(filePath, defaultValue = []) {
     if (!fs.existsSync(filePath)) {
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
         fs.writeFileSync(filePath, JSON.stringify(defaultValue));
         return defaultValue;
     }
@@ -32,10 +35,14 @@ function loadData(filePath, defaultValue = []) {
 }
 
 client.commands = new Collection();
-client.watchedPlayers = loadData(PLAYERS_FILE, []);
+client.watchedPlayers = loadData(PLAYERS_FILE, {});
 client.statsCache = loadData(CACHE_FILE, {});
+client.guildConfigs = loadData(GUILD_CONFIG_FILE, {});
+client.whiteList = loadData(WHITELIST_FILE, {});
 client.PLAYERS_FILE = PLAYERS_FILE;
 client.CACHE_FILE = CACHE_FILE;
+client.GUILD_CONFIG_FILE = GUILD_CONFIG_FILE;
+client.WHITELIST_FILE = WHITELIST_FILE;
 
 client.saveData = (filePath, data) => fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 client.fetchAllStats = async (player) => {
@@ -43,59 +50,76 @@ client.fetchAllStats = async (player) => {
         const res = await axios.get(`https://api.playhive.com/v0/game/all/all/${player}`);
         return res.data;
     } catch (error) {
-        console.error("データの取得に失敗しました\n", error);
+        if (error.response?.status !== 404) {
+            console.error(`${player} のデータ取得失敗:`, error.message);
+        }
         return null;
     }
 };
 
 // 2. 定期監視 (1分おき)
 cron.schedule('* * * * *', async () => {
-    const channel = await client.channels.fetch(CHANNEL_ID);
-    if (!channel) return;
+    // 今回のループで取得した最新データを一時的に保存する場所
+    const latestDataBuffer = {};
 
-    for (const player of client.watchedPlayers) {
+    // 1. まず、全サーバーで監視されている「重複のないプレイヤーリスト」を作成
+    const allUniquePlayers = new Set();
+    for (const guildId in client.watchedPlayers) {
+        if (!client.whiteList[guildId]) continue;
+        client.watchedPlayers[guildId].forEach(p => allUniquePlayers.add(p));
+    }
+
+    // 2. ユニークなプレイヤー全員分のデータを先に取得してバッファに入れる
+    for (const player of allUniquePlayers) {
         const data = await client.fetchAllStats(player);
-        if (!data) continue;
+        if (data) {
+            latestDataBuffer[player] = data;
+        }
+    }
+
+    // 3. 各サーバーごとに通知判定を行う（ここではキャッシュを書き換えない）
+    for (const guildId in client.watchedPlayers) {
+        if (!client.whiteList[guildId]) continue;
+
+        const channelId = client.guildConfigs[guildId];
+        if (!channelId) continue;
+        const channel = await client.channels.fetch(channelId).catch(() => null);
+        if (!channel) continue;
+
+        for (const player of client.watchedPlayers[guildId]) {
+            const data = latestDataBuffer[player];
+            if (!data) continue;
+
+            const games = ['sky', 'bed', 'ctf', 'hide', 'dr', 'murder', 'sg', 'drop', 'ground', 'build', 'party', 'bridge', 'grav'];
+
+            games.forEach(gameKey => {
+                const current = { v: data[gameKey]?.victories || 0, p: data[gameKey]?.played || 0 };
+                const prev = client.statsCache[player]?.[gameKey];
+                const gameName = getGameName(gameKey);
+
+                if (prev && current.p > prev.p) {
+                    const diffV = current.v - prev.v;
+                    const diffP = current.p - prev.p;
+                    const fields = [
+                        { name: "勝利数", value: `${prev.v} -> ${current.v} (+${diffV})` },
+                        { name: "敗北数", value: `${prev.p - prev.v} -> ${current.p - current.v} (+${diffP - diffV})` }
+                    ];
+                    channel.send({ embeds: [fields_embed(`⚔️ ${player}: ${gameName} をプレイ`, undefined, fields, '#00FF00')] });
+                }
+            });
+        }
+    }
+
+    // 4. すべてのサーバーへの送信が終わったら、最後に一括でキャッシュを更新
+    for (const player in latestDataBuffer) {
+        const data = latestDataBuffer[player];
+        if (!client.statsCache[player]) client.statsCache[player] = {};
 
         ['sky', 'bed', 'ctf', 'hide', 'dr', 'murder', 'sg', 'drop', 'ground', 'build', 'party', 'bridge', 'grav'].forEach(gameKey => {
-            const gameName =
-                gameKey === 'sky' ? 'SkyWars' :
-                    gameKey === 'bed' ? 'BedWars' :
-                        gameKey === 'ctf' ? 'Capture The Flag' :
-                            gameKey === 'hide' ? 'Hide And Seek' :
-                                gameKey === 'dr' ? 'Death Run' :
-                                    gameKey === 'murder' ? 'Murder Mystery' :
-                                        gameKey === 'sg' ? 'Survival Games' :
-                                            gameKey === 'drop' ? 'Block Drop' :
-                                                gameKey === 'ground' ? 'Ground Wars' :
-                                                    gameKey === 'build' ? 'Build Battle' :
-                                                        gameKey === 'party' ? 'Block Party' :
-                                                            gameKey === 'bridge' ? 'The Bridge' : 'Gravity';
-            const current = {
+            client.statsCache[player][gameKey] = {
                 v: data[gameKey]?.victories || 0,
                 p: data[gameKey]?.played || 0
             };
-
-            const prev = client.statsCache[player]?.[gameKey];
-
-            // キャッシュがある場合のみ比較
-            if (prev) {
-                const diffV = current.v - prev.v;
-                const diffP = current.p - prev.p;
-
-                const fields = [
-                    { name: "勝利数", value: `${prev.v} -> ${current.v} (+${diffV})` },
-                    { name: "敗北数", value: `${prev.p - prev.v} -> ${current.p - current.v} (+${diffP - diffV})` }
-                ];
-
-                if (diffP > 0) { // 試合数が動いた場合
-                    channel.send({ embeds: [fields_embed(`⚔️ ${player}: ${gameName} をプレイ`, undefined, fields, '#00FF00')] });
-                }
-
-                // キャッシュ更新
-                if (!client.statsCache[player]) client.statsCache[player] = {};
-                client.statsCache[player][gameKey] = current;
-            }
         });
     }
     client.saveData(client.CACHE_FILE, client.statsCache);
