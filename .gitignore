@@ -1,0 +1,22 @@
+# モジュール関連
+node_modules/
+eslint.config.mjs
+
+# OS関連
+.DS_Store
+Thumbs.db
+
+# エディタ関連
+.vscode/
+.idea/
+*.swp
+
+# 環境設定関連
+.env
+package-lock.json
+*.pem
+
+# 検証用ファイル
+test.js
+*.bat
+dev_data/
