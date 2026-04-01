@@ -89,7 +89,7 @@ cron.schedule('* * * * *', async () => {
                 ];
 
                 if (diffP > 0) { // 試合数が動いた場合
-                    channel.send({ embeds: [fields_embed(`⚔️ 【${gameName}】 をプレイしました`, undefined, fields, '#00FF00')] });
+                    channel.send({ embeds: [fields_embed(`⚔️ ${player}: ${gameName} をプレイ`, undefined, fields, '#00FF00')] });
                 }
 
                 // キャッシュ更新
