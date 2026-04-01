@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 require("dotenv").config();
 
-const { basic_embed } = require("./utils/embeds.js");
+const { fields_embed } = require("./utils/embeds.js");
 
 const client = new Client({
     intents: [
@@ -83,18 +83,19 @@ cron.schedule('* * * * *', async () => {
                 const diffV = current.v - prev.v;
                 const diffP = current.p - prev.p;
 
-                if (diffP > 0) { // 試合数が動いた場合
-                    if (diffV > 0) {
-                        channel.send({ embeds: [basic_embed(`🏆 【${gameName}】 勝利！`, `**${player}** が勝利しました`, '#00FF00')] });
-                    } else {
-                        channel.send({ embeds: [basic_embed(`💀 【${gameName}】 敗北...`, `**${player}** が敗北しました`, '#FF0000')] });
-                    }
-                }
-            }
+                const fields = [
+                    { name: "勝利数", value: `${prev.v} -> ${current.v} (+${diffV})` },
+                    { name: "敗北数", value: `${prev.p - prev.v} -> ${current.p - current.v} (+${diffP - diffV})` }
+                ];
 
-            // キャッシュ更新
-            if (!client.statsCache[player]) client.statsCache[player] = {};
-            client.statsCache[player][gameKey] = current;
+                if (diffP > 0) { // 試合数が動いた場合
+                    channel.send({ embeds: [fields_embed(`⚔️ 【${gameName}】 をプレイしました`, undefined, fields, '#00FF00')] });
+                }
+
+                // キャッシュ更新
+                if (!client.statsCache[player]) client.statsCache[player] = {};
+                client.statsCache[player][gameKey] = current;
+            }
         });
     }
     client.saveData(client.CACHE_FILE, client.statsCache);
