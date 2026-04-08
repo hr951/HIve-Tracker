@@ -17,9 +17,10 @@ const fields = [
     { name: "Name", value: "Value" }
 ];
 */
-function fields_embed(title, description, fields, color) {
+function fields_embed(title, description, fields, img, color) {
     const embed = new EmbedBuilder()
         .setTitle(title)
+        .setThumbnail(img)
         .setColor(color)
         .setTimestamp();
 

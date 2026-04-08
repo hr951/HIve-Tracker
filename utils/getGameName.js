@@ -14,6 +14,7 @@ function getGameName(gameId) {
         'bridge': 'The Bridge',
         'grav': 'Gravity'
     };
+
     return gameNames[gameId] || 'Unknown Game';
 }
 

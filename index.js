@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Collection } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, AttachmentBuilder } = require('discord.js');
 const axios = require('axios');
 const cron = require('node-cron');
 const path = require('path');
@@ -120,7 +120,10 @@ cron.schedule('* * * * *', async () => {
                     ];
 
                     const color = newStreak > 0 ? '#00FF00' : '#FF4500';
-                    channel.send({ embeds: [fields_embed(`⚔️ ${player}: ${gameName}`, undefined, fields, color)] });
+                    const img = new AttachmentBuilder()
+                        .setName(`${gameKey}.png`)
+                        .setFile(`./images/${gameKey}.png`);
+                    channel.send({ embeds: [fields_embed(`${player}: ${gameName}`, undefined, fields, `attachment://${gameKey}.png`, color)], files: [img] });
 
                     // 一時的なバッファに連勝数を保存（後で一括更新するため）
                     if (!latestDataBuffer[player].streaks) latestDataBuffer[player].streaks = {};
