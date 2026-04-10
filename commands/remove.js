@@ -15,19 +15,32 @@ module.exports = {
         const name = interaction.options.getString('name');
 
         const players = client.watchedPlayers[guildId];
-        if (!players || !players.includes(name)) {
-            return interaction.reply({ 
-                content: 'そのプレイヤーはリストにいません', 
-                flags: [MessageFlags.Ephemeral] 
+        if (!players || !players.some(p => p.toLowerCase() === name.toLowerCase())) {
+            return interaction.reply({
+                content: `リストに **${name}** は見つかりませんでした。`,
+                flags: [MessageFlags.Ephemeral]
             });
         }
 
-        client.watchedPlayers[guildId] = players.filter(p => p !== name);
+        const targetName = players.find(p => p.toLowerCase() === name.toLowerCase());
+
+        client.watchedPlayers[guildId] = players.filter(p => p !== targetName);
         client.saveData(client.PLAYERS_FILE, client.watchedPlayers);
 
-        await interaction.reply({ 
-            content: `🗑️ **${name}** を監視リストから削除しました`, 
-            flags: [MessageFlags.Ephemeral] 
+        const isStillWatchedSomewhere = Object.values(client.watchedPlayers).some(list =>
+            list.includes(targetName)
+        );
+
+        if (!isStillWatchedSomewhere) {
+            if (client.statsCache[targetName]) {
+                delete client.statsCache[targetName];
+                client.saveData(client.CACHE_FILE, client.statsCache);
+            }
+        }
+
+        await interaction.reply({
+            content: `🗑️ **${targetName}** を監視リストから削除しました`,
+            flags: [MessageFlags.Ephemeral]
         });
     }
 };

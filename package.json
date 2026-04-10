@@ -14,5 +14,10 @@
     "discord.js": "^14.26.0",
     "dotenv": "^17.3.1",
     "node-cron": "^4.2.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.2.0",
+    "globals": "^17.4.0"
   }
 }
