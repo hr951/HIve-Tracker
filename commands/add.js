@@ -55,6 +55,7 @@ module.exports = {
                 content: `✅ **${realName}** を追加しました`,
                 flags: [MessageFlags.Ephemeral]
             });
+            await console.log(`User Add: ${realName}`);
         } else {
             await interaction.reply({
                 content: `❌ **${name}** というプレイヤーは見つかりませんでした。`,

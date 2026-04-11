@@ -9,7 +9,7 @@ module.exports = {
             client.user.setPresence({
                 activities: [
                     {
-                        name: `${trackingPlayers}人のユーザーを追跡中...`,
+                        name: `${trackingPlayers}人のユーザーを追跡中`,
                         type: ActivityType.Playing
                     }
                 ],
