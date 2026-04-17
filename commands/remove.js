@@ -38,6 +38,8 @@ module.exports = {
             }
         }
 
+        await console.log(`User Remove: ${targetName}`);
+
         await interaction.reply({
             content: `🗑️ **${targetName}** を監視リストから削除しました`,
             flags: [MessageFlags.Ephemeral]

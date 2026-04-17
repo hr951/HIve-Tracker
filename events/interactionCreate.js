@@ -7,7 +7,7 @@ module.exports = {
         if (interaction.isChatInputCommand()) {
             if (!client.whiteList[interaction.guildId]) {
                 return interaction.reply({
-                    content: '❌ このサーバーではこのボットを利用する権限がありません\n※当ボットはホワイトリスト制を採用しています\n　使用申請は当ボットのDMに`使用申請`と送信してください',
+                    content: '❌ このサーバーではこのボットを利用する権限がありません\n※このボットはホワイトリスト制を採用しています\n　使用申請はこのボットのDMに`使用申請`と送信してください',
                     flags: [MessageFlags.Ephemeral]
                 });
             }

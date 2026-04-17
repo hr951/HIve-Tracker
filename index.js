@@ -130,7 +130,11 @@ cron.schedule('* * * * *', async () => {
                     const img = new AttachmentBuilder()
                         .setName(`${gameKey}.png`)
                         .setFile(`./images/${gameKey}.png`);
-                    channel.send({ embeds: [fields_embed(`${player}: ${gameName}`, undefined, fields, `attachment://${gameKey}.png`, color)], files: [img] });
+                    try {
+                        channel.send({ embeds: [fields_embed(`${player}: ${gameName}`, undefined, fields, `attachment://${gameKey}.png`, color)], files: [img] });
+                    } catch (error) {
+                        console.error("メッセージの送信に失敗しました\n" + error);
+                    }
 
                     // 一時的なバッファに連勝数を保存（後で一括更新するため）
                     if (!latestDataBuffer[player].streaks) latestDataBuffer[player].streaks = {};
